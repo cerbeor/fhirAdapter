@@ -1,0 +1,108 @@
+# Builds the FHIR adapter image from source and parks it in ECR as a deploy
+# candidate. Same contract as fits-webapp-hid: this workflow never writes the
+# :latest tag the running service follows, so a push here cannot change what
+# runs by itself. Promotion happens from Mission Control after a human
+# approves the candidate.
+
+name: build-image
+
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+permissions:
+  id-token: write # lets the job assume the AWS role via OIDC; no stored keys
+  contents: read
+
+concurrency:
+  group: build-image
+  cancel-in-progress: false
+
+env:
+  AWS_REGION: us-east-2
+  ECR_REPO: 708499050170.dkr.ecr.us-east-2.amazonaws.com/healthit/fits-adapter
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # All Maven traffic goes through our Nexus (anonymous read). fhirLib is
+      # our own 1.0-SNAPSHOT there, so central is redefined with snapshots on.
+      - name: maven settings
+        run: |
+          mkdir -p ~/.m2
+          cat > ~/.m2/settings.xml <<'XML'
+          <settings>
+            <mirrors>
+              <mirror>
+                <id>nexus</id>
+                <mirrorOf>*</mirrorOf>
+                <url>https://nexus.valitheus.com/repository/public/</url>
+              </mirror>
+            </mirrors>
+            <profiles>
+              <profile>
+                <id>nexus</id>
+                <repositories>
+                  <repository>
+                    <id>central</id>
+                    <url>https://nexus.valitheus.com/repository/public/</url>
+                    <releases><enabled>true</enabled></releases>
+                    <snapshots><enabled>true</enabled></snapshots>
+                  </repository>
+                </repositories>
+                <pluginRepositories>
+                  <pluginRepository>
+                    <id>central</id>
+                    <url>https://nexus.valitheus.com/repository/public/</url>
+                    <releases><enabled>true</enabled></releases>
+                    <snapshots><enabled>true</enabled></snapshots>
+                  </pluginRepository>
+                </pluginRepositories>
+              </profile>
+            </profiles>
+            <activeProfiles>
+              <activeProfile>nexus</activeProfile>
+            </activeProfiles>
+          </settings>
+          XML
+
+      - name: cache maven repo
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2/repository
+          key: m2-${{ hashFiles('**/pom.xml') }}
+          restore-keys: m2-
+
+      # The pom targets Java 7 bytecode and the image runs on a JDK 8 Tomcat,
+      # so build with 8.
+      - name: build war
+        run: |
+          docker run --rm \
+            -v "$PWD:/src" \
+            -v "$HOME/.m2/repository:/root/.m2/repository" \
+            -v "$HOME/.m2/settings.xml:/root/.m2/settings.xml:ro" \
+            -w /src maven:3.9-eclipse-temurin-8 \
+            mvn -B -DskipTests clean package
+          sudo chown -R "$(id -u):$(id -g)" target
+          test -f target/fhirAdapter.war
+
+      - name: aws login
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::708499050170:role/healthit-prod-github-fits-adapter
+          aws-region: us-east-2
+
+      - name: ecr login
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: push candidate image
+        run: |
+          SHA_TAG="sha-${GITHUB_SHA::7}"
+          docker buildx build --platform linux/amd64 \
+            -t "$ECR_REPO:$SHA_TAG" -t "$ECR_REPO:candidate" --push .
+          echo "Pushed $ECR_REPO:$SHA_TAG (also tagged :candidate)."
+          echo "Nothing is deployed yet — promote the candidate from Mission Control."

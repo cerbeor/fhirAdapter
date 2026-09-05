@@ -1,0 +1,4 @@
+# Only the built war and the error page enter the image.
+*
+!error.html
+!target/fhirAdapter.war
