@@ -76,6 +76,33 @@ jobs:
           path: ~/.m2/repository
           key: m2-${{ hashFiles('**/pom.xml') }}
           restore-keys: m2-
+      # Install ForecastConnector in 4 steps
+      # Step 1: Install Java 8 (Temurin distribution)
+      - name: Set up JDK 8
+        uses: actions/setup-java@v4
+        with:
+          java-version: '8'
+          distribution: 'temurin'
+          cache: 'maven' # Speeds up subsequent workflow runs by caching dependencies
+
+            # Step 2: Pull the external dependency repository at a specific commit hash
+      - name: Pull VaccineForecastConnector Dependency
+        uses: actions/checkout@v4
+        with:
+          repository: 'immregistries/VaccineForecastConnector'
+          ref: 'ff8008bace76612429f2d07db0389959cb0c98c1'
+          path: 'temp-dependency' # Clones it into a temporary subdirectory
+
+
+            # Step 3: Run the Maven command to build and install it to the local cache
+      - name: Build and Cache Dependency Locally
+        run: |
+          cd temp-dependency
+          mvn clean install -DskipTests
+          cd ..
+          rm -rf temp-dependency # Optional: Cleans up the directory to keep your runner clean
+
+      # Step 4: Run your main project's Maven build or build your docker image
 
       # The pom targets Java 7 bytecode and the image runs on a JDK 8 Tomcat,
       # so build with 8.
