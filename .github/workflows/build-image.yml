@@ -98,7 +98,7 @@ jobs:
       - name: Build VaccineForecastConnector and Cache Dependency Locally
         run: |
           cd temp-dependency
-          mvn clean install
+          mvn clean install -DskipTests
           cd ..
           rm -rf temp-dependency # Optional: Cleans up the directory to keep your runner clean
 
@@ -113,7 +113,7 @@ jobs:
       - name: Build FhirLib and Cache Dependency Locally
         run: |
           cd temp-dependency-2
-          mvn clean install
+          mvn clean install -DskipTests
           cd ..
           rm -rf temp-dependency-2 # Optional: Cleans up the directory to keep your runner clean
 
