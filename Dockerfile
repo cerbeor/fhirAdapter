@@ -11,10 +11,8 @@ RUN apt-get update && apt-get install -y \
 
 # Copy Source Code
 COPY . .
-# Install dependencies
+# Install dependencies & Create Artifact
 RUN chmod +x ./dependencies.sh && chmod +x ./build-with-dependencies.sh && ./build-with-dependencies.sh
-# Create Artifact
-RUN mvn clean package
 
 # ==========================================
 # Stage 2: Build Deploy
