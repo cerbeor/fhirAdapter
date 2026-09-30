@@ -112,10 +112,10 @@ jobs:
       # Step 5: Run the Maven command for FHIR lib to build and install it to the local cache
       - name: Build FhirLib and Cache Dependency Locally
         run: |
-          cd temp-dependency
+          cd temp-dependency-2
           mvn clean install
           cd ..
-          rm -rf temp-dependency # Optional: Cleans up the directory to keep your runner clean
+          rm -rf temp-dependency-2 # Optional: Cleans up the directory to keep your runner clean
 
       # Step 4: Run your main project's Maven build or build your docker image
 
