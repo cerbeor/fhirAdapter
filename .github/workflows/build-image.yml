@@ -106,7 +106,7 @@ jobs:
       - name: Pull FhirLib Dependency
         uses: actions/checkout@v4
         with:
-          "repository": "https://github.com/usnistgov/fhirLib",
+          repository: "https://github.com/usnistgov/fhirLib"
           ref: 'f619a839d46a8babdba5ccc0652cf6a1d35db209'
           path: 'temp-dependency-2' # Clones it into a temporary subdirectory
       # Step 5: Run the Maven command for FHIR lib to build and install it to the local cache
