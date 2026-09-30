@@ -132,19 +132,19 @@ jobs:
           sudo chown -R "$(id -u):$(id -g)" target
           test -f target/fhirAdapter.war
 
-#      - name: aws login
-#        uses: aws-actions/configure-aws-credentials@v4
-#        with:
-#          role-to-assume: arn:aws:iam::708499050170:role/healthit-prod-github-fits-adapter
-#          aws-region: us-east-2
-#
-#      - name: ecr login
-#        uses: aws-actions/amazon-ecr-login@v2
-#
-#      - name: push candidate image
-#        run: |
-#          SHA_TAG="sha-${GITHUB_SHA::7}"
-#          docker buildx build --platform linux/amd64 \
-#            -t "$ECR_REPO:$SHA_TAG" -t "$ECR_REPO:candidate" --push .
-#          echo "Pushed $ECR_REPO:$SHA_TAG (also tagged :candidate)."
-#          echo "Nothing is deployed yet — promote the candidate from Mission Control."
+      - name: aws login
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::708499050170:role/healthit-prod-github-fits-adapter
+          aws-region: us-east-2
+
+      - name: ecr login
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: push candidate image
+        run: |
+          SHA_TAG="sha-${GITHUB_SHA::7}"
+          docker buildx build --platform linux/amd64 \
+            -t "$ECR_REPO:$SHA_TAG" -t "$ECR_REPO:candidate" --push .
+          echo "Pushed $ECR_REPO:$SHA_TAG (also tagged :candidate)."
+          echo "Nothing is deployed yet — promote the candidate from Mission Control."
